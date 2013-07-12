@@ -25,9 +25,12 @@ var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
 var rest = require('restler');
+var util = require('util');
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
 var PROJECTURL_DEFAULT = "http://still-basin-5934.herokuapp.com/";
+var OUTPUT_FILE = "./outputfile.html";
+
 var assertFileExists = function(infile) {
     var instr = infile.toString();
     if(!fs.existsSync(instr)) {
@@ -44,13 +47,6 @@ var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
 
-var cheerioUrl = function(url) {
-	var resultstr = rest.get(url).on('complete', function(result) {
-		console.log(result);	
-		process.exit(1);
-		return cheerio.load(result);
-	});
-}
 
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
@@ -67,17 +63,6 @@ var checkHtmlFile = function(htmlfile, checksfile) {
     return out;
 };
 
-var checkUrlFile = function(url, checksfile) {
-    process.exit(1);
-	$ = cheerioUrl(url);
-    var checks = loadChecks(checksfile).sort();
-    var out = {};
-    for(var ii in checks) {
-        var present = $(checks[ii]).length > 0;
-        out[checks[ii]] = present;
-    }
-    return out;
-};
 
 var clone = function(fn) {
     // Workaround for commander.js issue.
@@ -95,23 +80,25 @@ if(require.main == module) {
 		console.log(index + ': ' + val);
 	});
   */
-console.log(process.argv[4]);
-	if (process.argv[4] == '--url') {
+	// console.log(process.argv[4]);
+	if (process.argv[4] == '--url') 
+	{
 		// Do for URL
-		
-		console.log(process.argv[5]);
-		var result = rest.get(program.url).on('complete', function(data) {
-			console.log(data.request);
+		rest.get(process.argv[5]).on('complete',function(result) {
+			fs.writeFileSync(OUTPUT_FILE, result);
+			program.file = OUTPUT_FILE;
+			var checkJson = checkHtmlFile(program.file, program.checks);
+			    var outJson = JSON.stringify(checkJson, null, 4);
+			    console.log(outJson);
 		});
-		
-//		console.log(rest.get(program.url));
-		//var checkJson = checkUrlFile(program.url, program.checks);
-	} else {
+	} 
+	else 
+	{
 		// Do for File
 		var checkJson = checkHtmlFile(program.file, program.checks);
+	    var outJson = JSON.stringify(checkJson, null, 4);
+	    console.log(outJson);
 	}
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
 } else {
-    exports.checkHtmlFile = checkHtmlFile;
+	exports.checkHtmlFile = checkHtmlFile;
 }
